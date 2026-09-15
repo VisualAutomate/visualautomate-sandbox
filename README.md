@@ -83,16 +83,20 @@ VA_CLI=../visualautomate-sdk/packages/cli/dist/index.js npm run smoke
 
 ## Publishing
 
-After the CLI version is on npm:
+After the CLI version is on npm, on GitHub: **Actions → Release image → Run workflow**, and
+enter the CLI version. It builds from the published CLI, runs the smoke test against the
+image and pushes `:<version>` and `:latest` to ghcr.io, logging in with the workflow's own
+token.
+
+From your own machine instead, after `docker login ghcr.io` with a classic token that has
+`write:packages`:
 
 ```bash
-docker login ghcr.io
 npm run release -- --cli 0.4.0
 ```
 
-This builds from the published CLI and pushes `:0.4.0` and `:latest`. Make the package
-public once, under the account's **Packages** settings on GitHub, so `docker pull` works
-without logging in.
+Make the package public once, under the account's **Packages** settings on GitHub, so
+`docker pull` works without logging in.
 
 ## License
 

@@ -1,0 +1,44 @@
+name: Release image
+
+# Started by hand: Actions → Release image → Run workflow, with the CLI version
+# the image should carry. Builds from that published CLI, runs the smoke test
+# against the image, and pushes it to ghcr.io as :<version> and :latest.
+#
+# Logs in with the workflow's own GITHUB_TOKEN, so no personal token is needed.
+
+on:
+  workflow_dispatch:
+    inputs:
+      cli_version:
+        description: "Published @visualautomate/cli version, for example 0.4.0"
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  release:
+    name: Build, smoke test & push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: The version is on npm
+        run: npm view "@visualautomate/cli@${{ inputs.cli_version }}" version
+      - run: npm install --global "@visualautomate/cli@${{ inputs.cli_version }}"
+      - run: npm run build -- --cli "${{ inputs.cli_version }}"
+      - run: npm run smoke
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push
+        run: |
+          docker push "ghcr.io/visualautomate/plugin-sandbox:${{ inputs.cli_version }}"
+          docker push "ghcr.io/visualautomate/plugin-sandbox:latest"
