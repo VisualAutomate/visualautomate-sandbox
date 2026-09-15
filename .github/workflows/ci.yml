@@ -1,0 +1,45 @@
+name: CI
+
+# Build the image and run the smoke test against it, on every push and pull
+# request. Publishing the image is done by hand with `npm run release`; see the
+# README.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  image:
+    name: Build & smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: The package list matches the SDK in package.json
+        run: |
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs"
+            import { ALLOWED_PACKAGES } from "@visualautomate/plugin-sdk"
+            const committed = JSON.parse(readFileSync("image/package.json", "utf8")).dependencies
+            const wanted = Object.fromEntries(ALLOWED_PACKAGES.map((p) => [p.name, p.version]))
+            const diff = [...new Set([...Object.keys(committed), ...Object.keys(wanted)])]
+              .filter((name) => committed[name] !== wanted[name])
+            if (diff.length) { console.error("Run npm run generate. Differs: " + diff.join(", ")); process.exit(1) }
+          '
+      - name: Install the CLI the image will contain
+        run: |
+          version="$(npm view @visualautomate/cli version)"
+          echo "CLI_VERSION=$version" >> "$GITHUB_ENV"
+          npm install --global "@visualautomate/cli@$version"
+      - run: npm run build -- --cli "$CLI_VERSION"
+      - run: npm run smoke

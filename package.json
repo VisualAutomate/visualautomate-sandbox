@@ -1,0 +1,18 @@
+{
+  "name": "visualautomate-sandbox",
+  "private": true,
+  "description": "The VisualAutomate plugin sandbox as a Docker image, for running plugins locally.",
+  "license": "MIT",
+  "scripts": {
+    "generate": "node scripts/generate-packages.mjs",
+    "build": "node scripts/build.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "release": "node scripts/build.mjs --push"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@visualautomate/plugin-sdk": "0.3.1"
+  }
+}

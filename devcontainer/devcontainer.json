@@ -1,0 +1,29 @@
+// Copy this file to .devcontainer/devcontainer.json in a plugin's repository,
+// then in VS Code: "Dev Containers: Reopen in Container".
+//
+// You work inside the plugin sandbox image: the platform's Node version, every
+// package a plugin may require, and `va` on the PATH. Keep the image tag the
+// same as the CLI version you use.
+//
+// The sandbox's CPU and memory limits are not applied here — VS Code itself runs
+// in this container and needs more than a plugin gets. To test within a tier's
+// limits, run `va test --docker --tier standard` from a terminal on your machine.
+{
+  "name": "VisualAutomate plugin sandbox",
+  "image": "ghcr.io/visualautomate/plugin-sandbox:0.4.0",
+  "remoteUser": "node",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/work,type=bind",
+  "workspaceFolder": "/work",
+  "containerEnv": {
+    "NODE_PATH": "/opt/visualautomate/node_modules"
+  },
+  "postAttachCommand": "va --version",
+  "customizations": {
+    "vscode": {
+      "extensions": ["dbaeumer.vscode-eslint"],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  }
+}

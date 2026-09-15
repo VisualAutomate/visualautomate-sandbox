@@ -1,0 +1,4 @@
+# LF everywhere: a Dockerfile or shell line ending in CR breaks a RUN that continues
+# with a backslash, and the image is built on Linux.
+* text=auto eol=lf
+*.tgz binary
