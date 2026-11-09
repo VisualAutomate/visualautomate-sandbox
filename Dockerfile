@@ -7,9 +7,11 @@
 # runs the plugin the way the platform does; `va test --docker` starts this image
 # with the CPU and memory of a sandbox tier and a read-only filesystem.
 
-# The Node version the platform's sandbox runs plugins on. Plugin code runs in
-# the same process as the CLI, so this is the version the code is tested on.
-ARG NODE_VERSION=20.20.2
+# The Node version the platform runs plugins on: Node 24, on Vercel (runtime
+# node24) and in the Cloudflare container alike. Pinned to an exact release so
+# an image built twice is the same image. Plugin code runs in the same process
+# as the CLI, so this is the version the code is tested on.
+ARG NODE_VERSION=24.22.2
 FROM node:${NODE_VERSION}-bookworm-slim
 
 LABEL org.opencontainers.image.title="VisualAutomate plugin sandbox" \
@@ -22,8 +24,9 @@ ENV NODE_ENV=production \
     NPM_CONFIG_FUND=false \
     VISUALAUTOMATE_PACKAGES=/opt/visualautomate
 
-# Every package a plugin may require, at the versions in the lockfile, with no
-# install scripts.
+# Every package a plugin may require, at the versions in the lockfile and with
+# the platform's npm overrides (both in image/package.json), with no install
+# scripts.
 #
 # `npm install`, not `npm ci`: two allowed packages disagree about `buffer` (crc
 # wants 6 as a peer, bl needs 5), which npm installs with a warning and `npm ci`

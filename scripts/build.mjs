@@ -2,9 +2,9 @@
  * Build the image, tagged with the version of the CLI inside it.
  *
  *     npm run build                              the CLI version from npm, latest
- *     npm run build -- --cli 0.4.0               a published version
+ *     npm run build -- --cli 0.7.0               a published version
  *     npm run build -- --cli-tarball ../x.tgz    a CLI that is not published yet
- *     npm run release -- --cli 0.4.0             build, then push to ghcr.io
+ *     npm run release -- --cli 0.7.0             build, then push to ghcr.io
  *
  * `va test --docker` asks for the image at its own version, so the tag has to
  * be the CLI's version exactly. Pushing needs `docker login ghcr.io` first.

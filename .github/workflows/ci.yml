@@ -29,12 +29,20 @@ jobs:
         run: |
           node --input-type=module -e '
             import { readFileSync } from "node:fs"
-            import { ALLOWED_PACKAGES } from "@visualautomate/plugin-sdk"
-            const committed = JSON.parse(readFileSync("image/package.json", "utf8")).dependencies
+            import { ALLOWED_PACKAGES, PLATFORM_NODE_MAJOR, SANDBOX_OVERRIDES } from "@visualautomate/plugin-sdk"
+            const image = JSON.parse(readFileSync("image/package.json", "utf8"))
+            const committed = image.dependencies
             const wanted = Object.fromEntries(ALLOWED_PACKAGES.map((p) => [p.name, p.version]))
             const diff = [...new Set([...Object.keys(committed), ...Object.keys(wanted)])]
               .filter((name) => committed[name] !== wanted[name])
             if (diff.length) { console.error("Run npm run generate. Differs: " + diff.join(", ")); process.exit(1) }
+            if (JSON.stringify(image.overrides ?? {}) !== JSON.stringify(SANDBOX_OVERRIDES ?? {})) {
+              console.error("Run npm run generate. The npm overrides differ from the SDK's."); process.exit(1)
+            }
+            const node = readFileSync("Dockerfile", "utf8").match(/ARG NODE_VERSION=(\d+)/)[1]
+            if (Number(node) !== PLATFORM_NODE_MAJOR) {
+              console.error(`The Dockerfile builds on Node ${node}; the platform runs Node ${PLATFORM_NODE_MAJOR}.`); process.exit(1)
+            }
           '
       - name: Install the CLI the image will contain
         run: |

@@ -33,7 +33,7 @@ function project(files) {
 }
 
 const plugin = (body) => ({
-    "manifest.json": { name: "smoke", outputs: ["success", "error"] },
+    "manifest.json": { description: "smoke", outputs: ["success", "error"] },
     "index.js": `module.exports = { execute: async (input, config, context) => { ${body} } }\n`,
     "visualautomate.test.json": { config: {}, input: {}, expectOutput: "success" },
 })
@@ -44,10 +44,21 @@ function check(name, files, args, expect) {
 }
 
 check(
+    // A step cannot read process.version: the platform hands it no process. What
+    // runs it can, and the CLI inside the image says nothing about the Node it is
+    // on only when it is the platform's.
     "runs on the platform's Node version",
-    plugin(`return { output: "success", data: { node: process.version } }`),
+    plugin(`return { output: "success", data: {} }`),
     [],
-    ({ code, out }) => code === 0 && /"node": "v20\.20\.2"/.test(out),
+    ({ code, out }) => code === 0 && !/the platform runs steps on Node/.test(out),
+)
+check(
+    "a step sees the platform's globals and not Node's",
+    plugin(`return { output: "success", data: { buffer: typeof Buffer, process: typeof process, fetch: typeof fetch, debug: typeof console.debug } }`),
+    [],
+    ({ code, out }) =>
+        code === 0 && /"buffer": "undefined"/.test(out) && /"process": "undefined"/.test(out)
+        && /"fetch": "function"/.test(out) && /"debug": "undefined"/.test(out),
 )
 check(
     "an allowed package works without npm install",
@@ -61,17 +72,32 @@ check(
     [],
     ({ code, out }) => code !== 0 && /requires "fs" which is not an allowed package/.test(out),
 )
+// Five gigabytes: more than standard's four, less than boosted's six.
+const fiveGigabytes = `const blocks = []; for (let i = 0; i < 40; i++) { const b = new Uint8Array(128 * 1024 * 1024); b.fill(1); blocks.push(b) }`
 check(
-    "the standard tier stops a step using more than 1 GB",
-    plugin(`const blocks = []; for (let i = 0; i < 16; i++) { const b = new Uint8Array(128 * 1024 * 1024); b.fill(1); blocks.push(b) } return { output: "success" }`),
+    "the standard tier stops a step using more than 4 GB",
+    plugin(`${fiveGigabytes} return { output: "success" }`),
     [],
     ({ code }) => code !== 0,
 )
 check(
     "the boosted tier has room for the same step",
-    plugin(`const blocks = []; for (let i = 0; i < 16; i++) { const b = new Uint8Array(128 * 1024 * 1024); b.fill(1); blocks.push(b) } return { output: "success", data: { mb: blocks.length * 128 } }`),
+    plugin(`${fiveGigabytes} return { output: "success", data: { mb: blocks.length * 128 } }`),
     ["--tier", "boosted"],
-    ({ code, out }) => code === 0 && /"mb": 2048/.test(out),
+    ({ code, out }) => code === 0 && /"mb": 5120/.test(out),
+)
+check(
+    "a declared module is checked, not run",
+    {
+        "manifest.json": {
+            description: "List repositories",
+            properties: { account: { label: "Account", type: "connection" } },
+            outputs: ["success", "error"],
+            action: { connection: "account", request: { method: "GET", path: "user/repos" }, outputs: { count: "{{response | length}}" } },
+        },
+    },
+    [],
+    ({ code, out }) => code === 0 && /checked/.test(out),
 )
 check(
     "--persist writes storage into the project on this machine",
@@ -82,9 +108,9 @@ check(
 check(
     "every module of an app repository runs",
     {
-        "modules/a/manifest.json": { name: "a", outputs: ["success"] },
+        "modules/a/manifest.json": { description: "a", outputs: ["success"] },
         "modules/a/index.js": `module.exports = { execute: async () => ({ output: "success" }) }\n`,
-        "modules/b/manifest.json": { name: "b", outputs: ["success"] },
+        "modules/b/manifest.json": { description: "b", outputs: ["success"] },
         "modules/b/index.js": `module.exports = { execute: async () => ({ output: "success" }) }\n`,
     },
     [],

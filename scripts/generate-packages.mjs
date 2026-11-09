@@ -12,10 +12,12 @@
  * same versions.
  */
 
-import { readFileSync, writeFileSync } from "node:fs"
+import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import { fileURLToPath } from "node:url"
-import { ALLOWED_PACKAGES } from "@visualautomate/plugin-sdk"
-import { docker } from "./npm.mjs"
+import { ALLOWED_PACKAGES, SANDBOX_OVERRIDES } from "@visualautomate/plugin-sdk"
+import { docker, npm } from "./npm.mjs"
 
 const sdkVersion = JSON.parse(
     readFileSync(new URL("../node_modules/@visualautomate/plugin-sdk/package.json", import.meta.url), "utf8"),
@@ -33,6 +35,9 @@ writeFileSync(
             private: true,
             description: `The packages a VisualAutomate plugin may require. Generated from @visualautomate/plugin-sdk ${sdkVersion}; do not edit.`,
             dependencies,
+            // The platform installs the same list with these, so a package one of
+            // them pulls in is the version it has there too.
+            overrides: SANDBOX_OVERRIDES ?? {},
         },
         null,
         2,
@@ -47,22 +52,40 @@ writeFileSync(
 // that grew one would run it while the image is built.
 const nodeVersion = readFileSync(new URL("../Dockerfile", import.meta.url), "utf8").match(/ARG NODE_VERSION=([\d.]+)/)[1]
 const imageDir = fileURLToPath(new URL("../image/", import.meta.url))
-const code = docker(
-    [
-        "run", "--rm",
-        "--volume", `${imageDir}:/packages`,
-        "--workdir", "/packages",
-        `node:${nodeVersion}-bookworm-slim`,
-        // A real install in a scratch folder, and only its lockfile copied back:
-        // --package-lock-only writes a tree that `npm ci` then rejects when one
-        // package is both a direct dependency and a nested one at another version.
-        "sh", "-c",
-        "mkdir -p /tmp/p && cp /packages/package.json /tmp/p/ && cd /tmp/p "
-            + "&& npm install --ignore-scripts --no-audit --no-fund --loglevel=error "
-            + "&& cp package-lock.json /packages/package-lock.json",
-    ],
-    { env: { ...process.env, MSYS_NO_PATHCONV: "1" } },
-)
+
+// A real install in a scratch folder, and only its lockfile copied back:
+// --package-lock-only writes a tree that `npm ci` then rejects when one package
+// is both a direct dependency and a nested one at another version.
+const install = "npm install --ignore-scripts --no-audit --no-fund --loglevel=error"
+
+let code
+if (process.argv.includes("--host")) {
+    // On this machine's npm rather than in a container: for when containers
+    // cannot reach the registry (behind a proxy they are not given). Every package
+    // here is plain JavaScript, so the tree npm resolves does not depend on the
+    // Node version it runs on.
+    const scratch = mkdtempSync(join(tmpdir(), "va-packages-"))
+    try {
+        copyFileSync(join(imageDir, "package.json"), join(scratch, "package.json"))
+        npm(install.split(" ").slice(1), scratch)
+        copyFileSync(join(scratch, "package-lock.json"), join(imageDir, "package-lock.json"))
+        code = 0
+    } finally {
+        rmSync(scratch, { recursive: true, force: true })
+    }
+} else {
+    code = docker(
+        [
+            "run", "--rm",
+            "--volume", `${imageDir}:/packages`,
+            "--workdir", "/packages",
+            `node:${nodeVersion}-bookworm-slim`,
+            "sh", "-c",
+            `mkdir -p /tmp/p && cp /packages/package.json /tmp/p/ && cd /tmp/p && ${install} && cp package-lock.json /packages/package-lock.json`,
+        ],
+        { env: { ...process.env, MSYS_NO_PATHCONV: "1" } },
+    )
+}
 if (code !== 0) process.exit(code)
 
 console.log(`${Object.keys(dependencies).length} packages from @visualautomate/plugin-sdk ${sdkVersion}`)
