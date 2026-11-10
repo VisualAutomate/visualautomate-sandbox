@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       cli_version:
-        description: "Published @visualautomate/cli version, for example 0.4.0"
+        description: "Published @visualautomate/cli version, for example 0.7.0"
         required: true
 
 permissions:
