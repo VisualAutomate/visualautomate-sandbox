@@ -1,7 +1,7 @@
 {
   "name": "visualautomate-plugin-packages",
   "private": true,
-  "description": "The packages a VisualAutomate plugin may require. Generated from @visualautomate/plugin-sdk 0.7.0; do not edit.",
+  "description": "The packages a VisualAutomate plugin may require. Generated from @visualautomate/plugin-sdk 0.8.0; do not edit.",
   "dependencies": {
     "@faker-js/faker": "^10.6.0",
     "@iarna/toml": "^2.2.5",

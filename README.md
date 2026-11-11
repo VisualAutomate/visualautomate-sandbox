@@ -37,12 +37,12 @@ The container runs as a non-root user with no Linux capabilities, a read-only fi
 apart from your project (mounted at `/work`) and a small `/tmp`, and nothing else from your
 machine. A step that runs out of memory is stopped, as it would be on the platform.
 
-The image tag is the CLI version: CLI 0.7.0 runs `plugin-sandbox:0.7.0`.
+The image tag is the CLI version: CLI 0.8.0 runs `plugin-sandbox:0.8.0`.
 
 ## Without the CLI
 
 ```bash
-docker run --rm -v "$PWD:/work" --cpus 0.5 --memory 4g ghcr.io/visualautomate/plugin-sandbox:0.7.0 test
+docker run --rm -v "$PWD:/work" --cpus 0.5 --memory 4g ghcr.io/visualautomate/plugin-sandbox:0.8.0 test
 ```
 
 The entrypoint is `va`, so anything after the image name is a `va` command.
@@ -69,7 +69,7 @@ Requires Docker and Node 20 or newer.
 ```bash
 npm install
 npm run generate        # image/package.json and its lockfile, from @visualautomate/plugin-sdk
-npm run build -- --cli 0.7.0
+npm run build -- --cli 0.8.0
 npm run smoke           # real plugins through `va test --docker` against the image
 ```
 
@@ -87,7 +87,7 @@ JavaScript, so the tree is the same.
 To test a CLI that is not published yet, pack it and build from the tarball:
 
 ```bash
-npm run build -- --cli-tarball ../visualautomate-sdk/visualautomate-cli-0.7.0.tgz
+npm run build -- --cli-tarball ../visualautomate-sdk/visualautomate-cli-0.8.0.tgz
 VA_CLI=../visualautomate-sdk/packages/cli/dist/index.js npm run smoke
 ```
 
