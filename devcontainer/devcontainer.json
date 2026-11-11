@@ -10,7 +10,7 @@
 // limits, run `va test --docker --tier standard` from a terminal on your machine.
 {
   "name": "VisualAutomate plugin sandbox",
-  "image": "ghcr.io/visualautomate/plugin-sandbox:0.7.0",
+  "image": "ghcr.io/visualautomate/plugin-sandbox:0.8.0",
   "remoteUser": "node",
   "workspaceMount": "source=${localWorkspaceFolder},target=/work,type=bind",
   "workspaceFolder": "/work",

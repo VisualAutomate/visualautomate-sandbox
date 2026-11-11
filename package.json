@@ -13,6 +13,6 @@
     "node": ">=20"
   },
   "devDependencies": {
-    "@visualautomate/plugin-sdk": "0.7.0"
+    "@visualautomate/plugin-sdk": "0.8.0"
   }
 }
